@@ -1,7 +1,7 @@
 # StageNet Protocol Specification
 
 ## Overview
-This document serves as a technical overview of the StageNet protocol. It includes the different data exchanges that take place to power the protocol.
+This document serves as a technical overview of the StageNet protocol. It includes the different data exchanges that are used to transfer data.
 
 ---
 
