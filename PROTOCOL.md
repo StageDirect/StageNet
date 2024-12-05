@@ -1,7 +1,7 @@
 # StageNet Protocol Specification
 
 ## Overview
-This document serves as a technical overview of the StageNet protocol. It includes the different data exchanges that are used to transfer data.
+This document serves as a technical overview of the StageNet protocol. It includes the different data exchanges that are used to transfer data. The protocol is designed to abstract various hardware and data interfaces into a unified addressing and communication system.
 
 ---
 
@@ -40,7 +40,7 @@ The console broadcasts a discovery packet over UDP on a unique port to locate av
 ```json
 {
   "Type": "DISCOVERY_RESP",
-  "GatewayIP": "192.168.1.2000",
+  "GatewayIP": "192.168.1.200",
   "GatewayID": "GATEWAY_01",
   "WSPort": 4000
 }
@@ -58,7 +58,7 @@ After discovery, the console establishes WebSocket connections directly with eac
 ---
 
 ### 3. Lease Request Phase
-After connection is established, gateways inform the console of their data channels (such as DMX), and the console assigns StageNet addresses.
+After connection is established, gateways request a number of StageNet addresses. Once received, the gateway maps these to its hardware channels and informs the console of the mapping.
 
 #### **Lease Request (GATEWAY → CONSOLE)**
 - **Method**: WebSocket Message
@@ -66,7 +66,7 @@ After connection is established, gateways inform the console of their data chann
   - **Type**: `LEASE_REQ`
   - **Fields**:
     - `GatewayID`: String (Unique identifier for the gateway)
-    - `DMXAddressRange`: Array of integers (Range of DMX addresses requesting StageNet addresses)
+    - `AddressCount`: Integer (Number of StageNet addresses needed)
 
 #### **Lease Response (CONSOLE → GATEWAY)**
 - **Method**: WebSocket Message
@@ -74,7 +74,18 @@ After connection is established, gateways inform the console of their data chann
   - **Type**: `LEASE_RESP`
   - **Fields**:
     - `LeaseID`: String (Unique identifier for this lease)
-    - `LeasedStageNetAddresses`: Array of strings (Assigned StageNet addresses)
+    - `Addresses`: Array of strings (Available StageNet addresses)
+
+#### **Mapping Update (GATEWAY → CONSOLE)**
+- **Method**: WebSocket Message
+- **Payload**:
+  - **Type**: `MAPPING_UPDATE`
+  - **Fields**:
+    - `LeaseID`: String (The lease these mappings belong to)
+    - `Mappings`: Array of objects
+      - `StageNetAddress`: String (The assigned StageNet address)
+      - `HardwareType`: String (e.g., "DMX", "MIDI", "ANALOG")
+      - `Channel`: Integer (The hardware channel number)
 
 #### Example:
 `LEASE_REQ` (GATEWAY → CONSOLE):
@@ -82,7 +93,7 @@ After connection is established, gateways inform the console of their data chann
 {
   "Type": "LEASE_REQ",
   "GatewayID": "GATEWAY_01",
-  "DMXAddressRange": [1, 2, 3, 4, 5]
+  "AddressCount": 4
 }
 ```
 
@@ -91,7 +102,21 @@ After connection is established, gateways inform the console of their data chann
 {
   "Type": "LEASE_RESP",
   "LeaseID": "lease_001",
-  "LeasedStageNetAddresses": ["SN1", "SN2", "SN3", "SN4", "SN5"]
+  "Addresses": ["SN1", "SN2", "SN3", "SN4"]
+}
+```
+
+`MAPPING_UPDATE` (GATEWAY → CONSOLE):
+```json
+{
+  "Type": "MAPPING_UPDATE",
+  "LeaseID": "lease_001",
+  "Mappings": [
+    {"StageNetAddress": "SN1", "HardwareType": "DMX", "Channel": 200},
+    {"StageNetAddress": "SN2", "HardwareType": "DMX", "Channel": 201},
+    {"StageNetAddress": "SN3", "HardwareType": "DMX", "Channel": 220},
+    {"StageNetAddress": "SN4", "HardwareType": "DMX", "Channel": 430}
+  ]
 }
 ```
 
@@ -106,7 +131,7 @@ Once StageNet addresses are leased, the console sends control data using the ass
   - **Type**: `DATA_PKT`
   - **Fields**:
     - `StageNetAddress`: String (Assigned StageNet address)
-    - `Value`: Integer (The value to set)
+    - `Value`: Integer (The value to set, currently 0-255)
 
 #### Example:
 `DATA_PKT` (CONSOLE → GATEWAY):
@@ -116,20 +141,3 @@ Once StageNet addresses are leased, the console sends control data using the ass
   "StageNetAddress": "SN1",
   "Value": 255
 }
-```
-
----
-
-### 5. Disconnection Phase
-Either party can initiate a clean disconnection by closing the WebSocket connection.
-
-#### **Disconnection**
-- **Method**: WebSocket Disconnection
-- Standard WebSocket closure with code 1000 (Normal Closure)
-
----
-
-## Error Codes
-- `ERROR_INVALID_PACKET`: When a packet is not in the expected format or fields are missing
-- `ERROR_LEASE_FAILED`: When the lease request cannot be processed
-- Standard WebSocket close codes for connection issues
