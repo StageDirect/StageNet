@@ -15,10 +15,10 @@ The console broadcasts a discovery packet over UDP to locate available gateways 
 - **Destination Port**: 44325
 - **Payload**:
   - **Type**: `DISCOVERY_REQ`
-  - **Payload**: None
+  - **ConsoleIP**: String (The IP address of the console)
 
 #### **Discovery Response (GATEWAY → CONSOLE)**
-- **Method**: UDP Response to Sender IP
+- **Method**: UDP Request to `ConsoleIP` from previous packet
 - **Destination Port**: 5001
 - **Payload**:
   - **Type**: `DISCOVERY_RESP`
@@ -31,7 +31,8 @@ The console broadcasts a discovery packet over UDP to locate available gateways 
 
 ```json
 {
-  "Type": "DISCOVERY_REQ"
+  "Type": "DISCOVERY_REQ",
+  "ConsoleIP": "192.168.1.100"
 }
 ```
 
@@ -39,7 +40,7 @@ The console broadcasts a discovery packet over UDP to locate available gateways 
 ```json
 {
   "Type": "DISCOVERY_RESP",
-  "GatewayIP": "192.168.1.100",
+  "GatewayIP": "192.168.1.200",
   "GatewayID": "GATEWAY_01"
 }
 ```
