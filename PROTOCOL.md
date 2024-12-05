@@ -8,42 +8,32 @@ This document serves as a technical overview of the StageNet protocol. It includ
 ## Protocol Phases
 
 ### 1. Discovery Phase
-The console broadcasts a discovery packet over UDP on a unique port to locate available gateways on the network. Gateways respond with their connection details.
+Gateways advertise themselves on the network using mDNS (Multicast DNS). The console discovers available gateways by querying for devices advertising the StageNet service.
 
-#### **Discovery Request (CONSOLE → GATEWAY)**
-- **Method**: UDP Broadcast
-- **Destination Port**: 44325
-- **Payload**:
-  - **Type**: `DISCOVERY_REQ`
-  - **ConsoleIP**: String (The IP address of the console)
+#### **Service Advertisement (GATEWAY)**
+- **Method**: mDNS Service Advertisement
+- **Service Type**: `_stagenet._tcp.local`
+- **Port**: 4000 (Default WebSocket port)
+- **TXT Records**:
+  - `id`: String (Unique identifier for the gateway)
+  - `type`: String (Type of gateway, e.g., "DMX", "MIDI")
+  - `version`: String (Protocol version)
 
-#### **Discovery Response (GATEWAY → CONSOLE)**
-- **Method**: UDP Response to `ConsoleIP`
-- **Destination Port**: 5001
-- **Payload**:
-  - **Type**: `DISCOVERY_RESP`
-  - **Fields**:
-    - `GatewayIP`: String (The IP address of the gateway)
-    - `GatewayID`: String (A unique identifier for the gateway)
-    - `WSPort`: Integer (The port of the gateway's WebSocket server)
+#### **Service Discovery (CONSOLE)**
+- **Method**: mDNS Query
+- **Service Type**: `_stagenet._tcp.local`
+- **Response**: List of available StageNet gateways with their connection details
 
-#### Example:
-`DISCOVERY_REQ` (CONSOLE → BROADCAST ADDRESS):
-```json
-{
-  "Type": "DISCOVERY_REQ",
-  "ConsoleIP": "192.168.1.100"
-}
+#### Example Service:
 ```
-
-`DISCOVERY_RESP` (GATEWAY → CONSOLE):
-```json
-{
-  "Type": "DISCOVERY_RESP",
-  "GatewayIP": "192.168.1.200",
-  "GatewayID": "GATEWAY_01",
-  "WSPort": 4000
-}
+Gateway Service:
+Name: gateway-01._stagenet._tcp.local
+IP: 192.168.1.200
+Port: 4000
+TXT Records:
+  id=GATEWAY_01
+  type=DMX
+  version=1.0
 ```
 
 ---
