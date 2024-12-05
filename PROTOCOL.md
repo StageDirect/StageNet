@@ -48,7 +48,7 @@ The console broadcasts a discovery packet over UDP to locate available gateways 
 
 ### 2. Connection Phase
 
-Once the console has recognized gateway(s), on start-up it sends a request to the gateway prompting it to initiate a WebSocket connection with the console to begin the data communication.
+Once the console has recognized some gateways, on startup it sends a request to the gateway prompting it to initiate a WebSocket connection with the console for the data communication.
 
 #### **Connect Request (CONSOLE → GATEWAY)**
 - **Method**: UDP Request
@@ -71,7 +71,7 @@ Once the console has recognized gateway(s), on start-up it sends a request to th
 ```json
 {
   "Type": "CONNECT_REQ",
-  "ConnectionID": "some-connection-identifier"
+  "ConnectionID": "12345"
 }
 ```
 
@@ -80,7 +80,7 @@ Once the console has recognized gateway(s), on start-up it sends a request to th
 ```json
 {
   "Type": "CONNECT_RESP",
-  "ConnectionID": "some-connection-identifier"
+  "ConnectionID": "12345"
 }
 ```
 
@@ -100,18 +100,18 @@ Gateways request StageNet addresses from the console, to assosciate with DMX cha
 #### **Lease Response (CONSOLE → GATEWAY)**
 - **Method**: WebSocket
 - **Payload**:
-  - **Type**: `LEASE_ACK`
+  - **Type**: `LEASE_RESP`
   - **Fields**:
     - `ConnectionID`: String (Connection identifier)
     - `LeasedStageNetAddresses`: Array of strings (Assigned StageNet addresses)
     - `LeaseID`: String (Unique identifier for this lease)
 
 #### Example:
-`LEASE_REQ` (GATEWAY → CONSOLE):
+`LEASE_RESP` (CONSOLE → GATEWAY):
 
 ```json
 {
-  "Type": "LEASE_ACK",
+  "Type": "LEASE_RESP",
   "ConnectionID": "12345",
   "LeasedStageNetAddresses": ["SN1", "SN2", "SN3", "SN4", "SN5"],
   "LeaseID": "lease_001"
@@ -121,24 +121,22 @@ Gateways request StageNet addresses from the console, to assosciate with DMX cha
 ---
 
 ### 4. Data Transmission Phase
-Once StageNet addresses are leased, the gateway can send control data (like DMX values) to the console, which will map these to their respective StageNet addresses.
+Once StageNet addresses are leased, the console can send control data (like DMX values) to the gateway that has the leased address, which find the matching data source (like DMX address) and apply the value.
 
-#### **Data Packet (GATEWAY → CONSOLE)**
+#### **Data Packet (CONSOLE → GATEWAY)**
 - **Method**: WebSocket
 - **Payload**:
   - **Type**: `DATA_PKT`
   - **Fields**:
-    - `GatewayID`: String (Unique identifier for the gateway)
     - `StageNetAddress`: String (Assigned StageNet address)
     - `Value`: Integer (The current value of the hardware)
 
 #### Example:
-`DATA_PKT` (GATEWAY → CONSOLE):
+`DATA_PKT` (CONSOLE → GATEWAY):
 
 ```json
 {
   "Type": "DATA_PKT",
-  "GatewayID": "GATEWAY_01",
   "StageNetAddress": "SN1",
   "Value": 255
 }
@@ -147,21 +145,17 @@ Once StageNet addresses are leased, the gateway can send control data (like DMX 
 ---
 
 ### 5. Disconnection Phase
-A gateway can disconnect from the console by sending a disconnect request over the WebSocket connection.
+During shutdown, the console tells all gateways to disconnect from the WebSocket and to forget their session data.
 
-#### **Disconnect Request (GATEWAY → CONSOLE)**
+#### **Disconnect Request (CONSOLE → GATEWAYS)**
 - **Method**: WebSocket
 - **Payload**:
   - **Type**: `DISCONNECT_REQ`
-  - **Fields**:
-    - `ConnectionID`: String (Connection identifier)
 
-#### **Disconnect Response (CONSOLE → GATEWAY)**
+#### **Disconnect Response (GATEWAY → CONSOLE)**
 - **Method**: WebSocket
 - **Payload**:
   - **Type**: `DISCONNECT_ACK`
-  - **Fields**:"
-    - `ConnectionID`: String (Connection identifier)
 
 #### Example:
 `DISCONNECT_REQ` (GATEWAY → CONSOLE):
@@ -169,7 +163,6 @@ A gateway can disconnect from the console by sending a disconnect request over t
 ```json
 {
   "Type": "DISCONNECT_REQ",
-  "ConnectionID": "12345"
 }
 ```
 
@@ -177,7 +170,6 @@ A gateway can disconnect from the console by sending a disconnect request over t
 ```json
 {
   "Type": "DISCONNECT_ACK",
-  "ConnectionID": "12345"
 }
 ```
 
